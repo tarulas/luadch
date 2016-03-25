@@ -3,6 +3,7 @@
     hub.lua by blastbeat
 
         v0.25: by tarulas
+            - fixed use_ping being ignored
             - disable_email option removes emails from user descs
 
         v0.24: by pulsar
@@ -1552,7 +1553,7 @@ _protocol = {
     HSUP = function( user, adccmd )
         if adccmd:hasparam "ADBASE" or adccmd:hasparam "ADBAS0" then
             local response
-            if adccmd:hasparam "ADPING" then
+            if adccmd:hasparam "ADPING" and _cfg_use_ping then
                 local max_share = _cfg_max_share[ 0 ] or 100
                 max_share = max_share * 1024^4
                 response = utf_format( _pingsup,
@@ -1934,6 +1935,7 @@ loadsettings = function( )    -- caching table lookups...
     _cfg_bad_pass_timeout = cfg_get "bad_pass_timeout"
     _cfg_kill_wrong_ips = cfg_get "kill_wrong_ips"
     _cfg_disable_email = cfg_get "disable_email"
+    _cfg_use_ping = cfg_get "use_ping"
 end
 
 init = function( )
