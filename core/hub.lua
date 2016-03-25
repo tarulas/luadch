@@ -1792,6 +1792,12 @@ _normal = {
         end
         return true
     end,
+    DPSR = function( user, adccmd, targetuser )
+        if not scripts_firelistener( "onSearchResult", user, targetuser, adccmd ) then
+            targetuser.write( adccmd:adcstring( ) )
+        end
+        return true
+    end,
     DRES = function( user, adccmd, targetuser )
         if not scripts_firelistener( "onSearchResult", user, targetuser, adccmd ) then
             targetuser.write( adccmd:adcstring( ) )

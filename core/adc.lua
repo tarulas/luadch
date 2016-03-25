@@ -460,6 +460,22 @@ _protocol = {
             nonpclones = true,
 
         },
+        PSR = {
+
+            pp = { len = 0, },
+            np = {
+
+                HI = _regex.default,
+                U4 = _regex.integer,
+                U6 = _regex.integer,
+                TR = _regex.th,
+                PC = _regex.integer,
+                PI = _regex.default,
+
+            },
+            nonpclones = true,
+
+        },
         PAS = {
 
             pp = {
@@ -483,6 +499,7 @@ _protocol = {
         MSG = _regex.context.send,
         SCH = _regex.context.send,
         RES = _regex.context.direct,
+        PSR = _regex.context.direct,
         CTM = _regex.context.direct,
         RCM = _regex.context.direct,
         GPA = _regex.context.hub,
