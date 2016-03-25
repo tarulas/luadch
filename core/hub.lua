@@ -6,6 +6,7 @@
             - fixed use_ping being ignored
             - disable_email option removes emails from user descs
             - new logins with same cid kick old ones (without autoreconnect)
+            - added forbid_plaintext support
 
         v0.24: by pulsar
             - changes in loadusers() function
@@ -321,6 +322,7 @@ local _cfg_max_bad_password
 local _cfg_bad_pass_timeout
 local _cfg_kill_wrong_ips
 local _cfg_disable_email
+local _cfg_forbid_plaintext
 
 --// constants //--
 
@@ -1655,6 +1657,14 @@ _identify = {
                 return true
             end
         end
+        if _cfg_forbid_plaintext then
+            local usup = adccmd:getnp "SU"
+            if ( not usup ) or ( not utf_find( usup, "SUDP" ) ) then
+                adccmd:deletenp "U4"
+                adccmd:deletenp "U6"
+                adccmd:removesu "UDP4"
+            end
+        end
         if _cfg_disable_email then
             adccmd:deletenp "EM"
         end
@@ -1769,13 +1779,57 @@ _normal = {
     end,
     DCTM = function( user, adccmd, targetuser )
         if not scripts_firelistener( "onConnectToMe", user, targetuser, adccmd ) then
-            targetuser.write( adccmd:adcstring( ) )
+            local protocol = adccmd[ 8 ]
+            local token = adccmd[ 12 ]
+            types_utf8( protocol )
+            types_utf8( token )
+
+            if targetuser.isbot() then
+                user.write( "DSTA "..targetuser.sid().." "..user.sid().." 241 You\\scan't\\sconnect\\sto\\sbots. PR"..protocol.." TO"..token.."\n" )
+                return true
+            end
+            if utf_match( protocol, "^ADCS/" ) then
+                targetuser.write( adccmd:adcstring( ) )
+                return true
+            elseif utf_match( protocol, "^ADC/" ) then
+                if _cfg_forbid_plaintext then
+                    user.write( "DSTA "..targetuser.sid().." "..user.sid().." 141 ".._i18n_unencrypted_not_supp.." PR"..protocol.." TO"..token.."\n" )
+                    return true
+                else
+                    targetuser.write( adccmd:adcstring( ) )
+                    return true
+                end
+            else
+                user.write( "DSTA "..targetuser.sid().." "..user.sid().." 241 Unknown\\sprotocol\\s"..protocol.."\\snot\\ssupported. PR"..protocol.." TO"..token.."\n" )
+            end
         end
         return true
     end,
     DRCM = function( user, adccmd, targetuser )
         if not scripts_firelistener( "onRevConnectToMe", user, targetuser,adccmd ) then
-            targetuser.write( adccmd:adcstring( ) )
+            local protocol = adccmd[ 8 ]
+            local token = adccmd[ 10 ]
+            types_utf8( protocol )
+            types_utf8( token )
+
+            if targetuser.isbot() then
+                user.write( "DSTA "..targetuser.sid().." "..user.sid().." 241 You\\scan't\\sconnect\\sto\\sbots. PR"..protocol.." TO"..token.."\n" )
+                return true
+            end
+            if utf_match( protocol, "^ADCS/" ) then
+                targetuser.write( adccmd:adcstring( ) )
+                return true
+            elseif utf_match( protocol, "^ADC/" ) then
+                if _cfg_forbid_plaintext then
+                    user.write( "DSTA "..targetuser.sid().." "..user.sid().." 141 ".._i18n_unencrypted_not_supp.." PR"..protocol.." TO"..token.."\n" )
+                    return true
+                else
+                    targetuser.write( adccmd:adcstring( ) )
+                    return true
+                end
+            else
+                user.write( "DSTA "..targetuser.sid().." "..user.sid().." 241 Unknown\\sprotocol\\s"..protocol.."\\snot\\ssupported. PR"..protocol.." TO"..token.."\n" )
+            end
         end
         return true
     end,
@@ -1794,6 +1848,11 @@ _normal = {
     end,
     DPSR = function( user, adccmd, targetuser )
         if not scripts_firelistener( "onSearchResult", user, targetuser, adccmd ) then
+            if _cfg_forbid_plaintext then
+                -- TODO: SUDP detect for both
+                adccmd:deletenp "U4"
+                adccmd:deletenp "U6"
+            end
             targetuser.write( adccmd:adcstring( ) )
         end
         return true
@@ -1916,6 +1975,7 @@ loadlanguage = function( )
     _i18n_max_bad_password = adclib_escape( i18n.hub_max_bad_password or "Max bad password exceeded. Timeout in seconds: " )
     _i18n_nick_or_cid_taken = adclib_escape( i18n.hub_nick_or_cid_taken or "Nick/CID taken." )
     _i18n_no_cid_nick_found = adclib_escape( i18n.hub_no_cid_nick_found or "No CID/PID/nick found in your INF." )
+    _i18n_unencrypted_not_supp = adclib_escape( _i18n_unencrypted_not_supp or "This hub does not allow unencrypted connections. Please enable Settings > Advanced > Security > \"Use TLS when remote client supports it\" and make sure you have generated keys to connect." )
     _i18n_hubbot_response = i18n.hub_hubbot_response or "I am the Hubbot, do you really want to talk to me?"
 end
 
@@ -1946,6 +2006,7 @@ loadsettings = function( )    -- caching table lookups...
     _cfg_bad_pass_timeout = cfg_get "bad_pass_timeout"
     _cfg_kill_wrong_ips = cfg_get "kill_wrong_ips"
     _cfg_disable_email = cfg_get "disable_email"
+    _cfg_forbid_plaintext = cfg_get "forbid_plaintext"
     _cfg_use_ping = cfg_get "use_ping"
 end
 

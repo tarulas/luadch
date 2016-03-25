@@ -6,6 +6,7 @@
             - basic settings:
                 - added "disable_email" option
                 - added "hub_ip" option
+                - added "forbid_plaintext" option
 
         v0.47: by pulsar
             - etc_trafficmanager.lua settings:
@@ -3362,6 +3363,12 @@ _defaultsettings = {
     },
 
     disable_email = { false,
+        function( value )
+            return types_boolean( value, nil, true )
+        end
+    },
+
+    forbid_plaintext = { false,
         function( value )
             return types_boolean( value, nil, true )
         end
