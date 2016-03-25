@@ -4,6 +4,9 @@
 
         - ADC stuff
 
+            v0.09: by tarulas
+                - strongly random salt
+
             v0.08: by blastbeat
                 - add SEGA support (Grouping of file extensions in SCH)
 
@@ -51,11 +54,14 @@ local string = use "string"
 
 --// lua lib methods //--
 
+local io_open = io.open
 local os_date = os.date
 local os_time = os.time
 local os_clock = os.clock
 local string_sub = string.sub
+local string_byte = string.byte
 local math_random = math.random
+local math_fmod = math.fmod
 local string_gsub = string.gsub
 local string_find = string.find
 local string_match = string.match
@@ -541,11 +547,14 @@ adclib.createsid = function( )
 end
 
 adclib.createsalt = function( num )
-    num = num or 10
+    local randomdevice = io_open( "/dev/urandom", "r" ) -- TODO: Windows compatibility, RtlGenRandom
+    num = num or 20
+    local randomstring = randomdevice:read( num )
+    randomdevice:close( )
     local eol = 0
     for i = 1, num do
         eol = eol + 1
-        _buffer[ eol ] = _base32[ math_random( 32 ) ]
+        _buffer[ eol ] = _base32[ math_fmod( string_byte( randomstring, i ), 32 ) + 1 ]
     end
     return table_concat( _buffer, "", 1, eol )
 end

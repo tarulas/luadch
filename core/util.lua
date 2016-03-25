@@ -4,6 +4,10 @@
 
             - this script is a collection of useful functions
 
+            v0.12: by tarulas
+                - changed: util.generatepass( len )
+                    - password generation needs a CSPRNG, not math.random crap
+
             v0.11: by pulsar
                 - added: maketable( tbl, path )
                     - make a new local table file
@@ -86,10 +90,11 @@ local os_time = os.time
 local os_date = os.date
 local os_difftime = os.difftime
 local math_floor = math.floor
-local math_random = math.random
-local math_randomseed = math.randomseed
+local math_fmod = math.fmod
 local table_sort = table.sort
 local table_insert = table.insert
+local table_concat = table.concat
+local string_byte = string.byte
 local string_format = string.format
 local string_find = string.find
 local string_match = string.match
@@ -407,26 +412,26 @@ formatbytes = function( bytes )
 end
 
 --// returns a random generated alphanumerical password with length = len; if no param is specified then len = 20
+local _base62 = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+                  "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
+                  "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
+                  "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+                  "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z" }
 generatepass = function( len )
     local len = tonumber( len )
     if not ( type( len ) == "number" ) or ( len < 0 ) or ( len > 1000 ) then len = 20 end
-    local lower = { "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
-                    "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z" }
-    local upper = { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
-                    "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z" }
-    math_randomseed( os_time() )
-    local pwd = ""
+    local randomdevice = io_open( "/dev/urandom", "r" ) -- TODO: Windows compatibility, RtlGenRandom
+    local eol = 0
+    local _buffer
     for i = 1, len do
-        local X = math_random( 0, 9 )
-        if X < 4 then
-            pwd = pwd .. math_random( 0, 9 )
-        elseif ( X >= 4 ) and ( X < 6 ) then
-            pwd = pwd .. upper[ math_random( 1, 25 ) ]
-        else
-            pwd = pwd .. lower[ math_random( 1, 25 ) ]
-        end
+        repeat
+            local r = string_byte( randomdevice:read( 1 ) )
+        until ( r < 248 ) -- 248 = 256-(256%62), to avoid bias
+        _buffer[ eol ] = _base62[ math_fmod( r, 62 ) + 1 ]
+        eol = eol + 1
     end
-    return pwd
+    randomdevice:close( )
+    return table_concat( _buffer, "", 1, eol )
 end
 
 --// returns current date in new luadch date style: yyyymmddhhmmss (as number)
