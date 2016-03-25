@@ -2,6 +2,9 @@
 
     hub.lua by blastbeat
 
+        v0.25: by tarulas
+            - disable_email option removes emails from user descs
+
         v0.24: by pulsar
             - changes in loadusers() function
                 - added cfg_checkusers()
@@ -315,6 +318,7 @@ local _cfg_max_op_hubs
 local _cfg_max_bad_password
 local _cfg_bad_pass_timeout
 local _cfg_kill_wrong_ips
+local _cfg_disable_email
 
 --// constants //--
 
@@ -1645,6 +1649,9 @@ _identify = {
                 return true
             end
         end
+        if _cfg_disable_email then
+            adccmd:deletenp "EM"
+        end
         adccmd:deletenp "PD"
         user:inf( adccmd )
         insertuser( nick, cid, hash, user )
@@ -1926,6 +1933,7 @@ loadsettings = function( )    -- caching table lookups...
     _cfg_max_bad_password = cfg_get "max_bad_password"
     _cfg_bad_pass_timeout = cfg_get "bad_pass_timeout"
     _cfg_kill_wrong_ips = cfg_get "kill_wrong_ips"
+    _cfg_disable_email = cfg_get "disable_email"
 end
 
 init = function( )

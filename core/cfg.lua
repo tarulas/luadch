@@ -2,6 +2,10 @@
 
     cfg.lua by blastbeat
 
+        v0.48: by tarulas
+            - basic settings:
+                - added "disable_email" option
+
         v0.47: by pulsar
             - etc_trafficmanager.lua settings:
                 - added "etc_trafficmanager_check_minshare" function
@@ -3346,6 +3350,12 @@ _defaultsettings = {
     --// PING //--
 
     use_ping = { true,
+        function( value )
+            return types_boolean( value, nil, true )
+        end
+    },
+
+    disable_email = { false,
         function( value )
             return types_boolean( value, nil, true )
         end
