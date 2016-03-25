@@ -51,9 +51,9 @@ int is_valid_utf8(lua_State* L)
 
     size_t length;
     const char* string = luaL_checklstring(L, 1, &length);
-    int expect = 0;
+    size_t expect = 0;
     char div = 0;
-    int pos = 0;
+    size_t pos = 0;
 
     if (length == 0)
     {
