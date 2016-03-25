@@ -14,14 +14,6 @@
 
 ----------------------------------// DECLARATION //--
 
-local pre = dofile "core/pre.lua"
-
-pre.processor( )
-
-if not DEBUG then
-     pre.processor( true )
-end
-
 --// lua functions //--
 
 local type = type
