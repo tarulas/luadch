@@ -1833,6 +1833,60 @@ _normal = {
         end
         return true
     end,
+    DNAT = function( user, adccmd, targetuser )
+        if not scripts_firelistener( "onNATT", user, targetuser, adccmd ) then
+            local protocol = adccmd[ 8 ]
+            local token = adccmd[ 12 ]
+            types_utf8( protocol )
+            types_utf8( token )
+
+            if targetuser.isbot() then
+                return true
+            end
+            if utf_match( protocol, "^ADCS/" ) then
+                targetuser.write( adccmd:adcstring( ) )
+                return true
+            elseif utf_match( protocol, "^ADC/" ) then
+                if _cfg_forbid_plaintext then
+                    user.write( "DSTA "..targetuser.sid().." "..user.sid().." 141 ".._i18n_unencrypted_not_supp.." PR"..protocol.." TO"..token.."\n" )
+                    return true
+                else
+                    targetuser.write( adccmd:adcstring( ) )
+                    return true
+                end
+            else
+                user.write( "DSTA "..targetuser.sid().." "..user.sid().." 241 Unknown\\sprotocol\\s"..protocol.."\\snot\\ssupported. PR"..protocol.." TO"..token.."\n" )
+            end
+        end
+        return true
+    end,
+    DRNT = function( user, adccmd, targetuser )
+        if not scripts_firelistener( "onRevNATT", user, targetuser,adccmd ) then
+            local protocol = adccmd[ 8 ]
+            local token = adccmd[ 12 ]
+            types_utf8( protocol )
+            types_utf8( token )
+
+            if targetuser.isbot() then
+                return true
+            end
+            if utf_match( protocol, "^ADCS/" ) then
+                targetuser.write( adccmd:adcstring( ) )
+                return true
+            elseif utf_match( protocol, "^ADC/" ) then
+                if _cfg_forbid_plaintext then
+                    user.write( "DSTA "..targetuser.sid().." "..user.sid().." 141 ".._i18n_unencrypted_not_supp.." PR"..protocol.." TO"..token.."\n" )
+                    return true
+                else
+                    targetuser.write( adccmd:adcstring( ) )
+                    return true
+                end
+            else
+                user.write( "DSTA "..targetuser.sid().." "..user.sid().." 241 Unknown\\sprotocol\\s"..protocol.."\\snot\\ssupported. PR"..protocol.." TO"..token.."\n" )
+            end
+        end
+        return true
+    end,
     BSCH = function( user, adccmd )
         if not scripts_firelistener( "onSearch", user, adccmd ) then
             sendtoall( adccmd:adcstring( ) )

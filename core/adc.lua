@@ -6,6 +6,9 @@
 
             v0.09: by tarulas
                 - strongly random salt
+                - add FS (free slots) support, ADC ext 3.22
+                - add PFSR (partial file sharing) support, ADC ext 3.12
+                - add NATT (NAT traversal) support, ADC ext 3.9
 
             v0.08: by blastbeat
                 - add SEGA support (Grouping of file extensions in SCH)
@@ -407,6 +410,36 @@ _protocol = {
             nonpclones = false,
 
         },
+        NAT = {
+
+            pp = {
+
+                _regex.default,
+                _regex.integer,
+                _regex.default,
+
+                len = 3,
+
+            },
+            np = { },
+            nonpclones = false,
+
+        },
+        RNT = {
+
+            pp = {
+
+                _regex.default,
+                _regex.integer,
+                _regex.default,
+
+                len = 3,
+
+            },
+            np = { },
+            nonpclones = false,
+
+        },
         SCH = {
 
             pp = { len = 0, },
@@ -502,6 +535,8 @@ _protocol = {
         PSR = _regex.context.direct,
         CTM = _regex.context.direct,
         RCM = _regex.context.direct,
+        NAT = _regex.context.direct,
+        RNT = _regex.context.direct,
         GPA = _regex.context.hub,
         PAS = _regex.context.hub,
         QUI = _regex.context.hub,
