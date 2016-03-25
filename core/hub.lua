@@ -5,6 +5,7 @@
         v0.25: by tarulas
             - fixed use_ping being ignored
             - disable_email option removes emails from user descs
+            - new logins with same cid kick old ones (without autoreconnect)
 
         v0.24: by pulsar
             - changes in loadusers() function
@@ -1617,7 +1618,11 @@ _identify = {
         end
         local onlineuser = isuserconnected( nil, nil, cid, hash )
         if onlineuser then
-            onlineuser:kill( "ISTA 224 " .. _i18n_cid_taken .. "\n" )
+            if onlineuser:ip( ) == user:ip( ) then
+                onlineuser:kill( "ISTA 224 You\\shave\\sbeen\\sdisconnected\\sbecause\\syou\\shave\\slogged\\son\\sfrom\\sanother\\sclient\\s(from\\sthe\\ssame\\sIP\\saddress).\n", "IQUI " .. onlineuser:sid( ) .. " TL-1\n" )
+            else
+                onlineuser:kill( "ISTA 224 You\\shave\\sbeen\\sdisconnected\\sbecause\\syou\\shave\\slogged\\son\\sfrom\\sanother\\sclient\\s(from\\sIP\\saddress:\\s" .. user:ip( ) .. ").\n", "IQUI " .. onlineuser:sid( ) .. " TL-1\n" )
+            end
         end
         if isuserconnected( nick ) then
             user:kill( "ISTA 222 " .. _i18n_nick_taken .. "\n" )
