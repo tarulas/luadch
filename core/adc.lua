@@ -353,6 +353,7 @@ _protocol = {
                 US = _regex.integer,
                 DS = _regex.integer,
                 SL = _regex.integer,
+                FS = _regex.integer,
                 AS = _regex.integer,
                 AM = _regex.integer,
                 NI = _regex.nowhitespace,
