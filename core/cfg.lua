@@ -5,6 +5,7 @@
         v0.48: by tarulas
             - basic settings:
                 - added "disable_email" option
+                - added "hub_ip" option
 
         v0.47: by pulsar
             - etc_trafficmanager.lua settings:
@@ -577,6 +578,11 @@ _defaultsettings = {
         end
     },
     keyprint_hash = { "<your_kp>",
+        function( value )
+            return types_utf8( value, nil, true )
+        end
+    },
+    hub_ip = { "*",
         function( value )
             return types_utf8( value, nil, true )
         end
