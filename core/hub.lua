@@ -7,6 +7,7 @@
             - disable_email option removes emails from user descs
             - new logins with same cid kick old ones (without autoreconnect)
             - added forbid_plaintext support
+            - added HADM (remote admin JSON API) support
 
         v0.24: by pulsar
             - changes in loadusers() function
@@ -126,6 +127,7 @@ local os_time = os.time
 local os_difftime = os.difftime
 local table_concat = table.concat
 local table_remove = table.remove
+local table_insert = table.insert
 
 --// extern libs //--
 
@@ -157,6 +159,7 @@ local adc = use "adc"
 local cfg = use "cfg"
 local mem = use "mem"
 local util = use "util"
+local json = use "json"
 local types = use "types"
 local const = use "const"
 local server = use "server"
@@ -185,6 +188,8 @@ local types_check = types.check
 local util_formatseconds = util.formatseconds
 local util_date = util.date
 local util_difftime = util.difftime
+local util_pairsbykeys = util.pairsbykeys
+local util_generatepass = util.generatepass
 
 --// functions //--
 
@@ -324,6 +329,11 @@ local _cfg_kill_wrong_ips
 local _cfg_disable_email
 local _cfg_forbid_plaintext
 local _cfg_use_ping
+local _cfg_hadm_password
+local _cfg_ssl_ports
+local _cfg_use_keyprint
+local _cfg_keyprint_type
+local _cfg_keyprint_hash
 
 --// constants //--
 
@@ -366,6 +376,7 @@ _regex = {
         lastconnect = "^%d+$",
         lastlogout = "^%d+$",
         is_online = "^%d+$",
+        acctlink = "^%d+$",
         --speedinfo = "^[%S]+$",
 
     },
@@ -665,6 +676,10 @@ reguser = function( profile )
     end
     profile.date = profile.date or os_date( "%Y-%m-%d / %H:%M:%S" )
     profile.by = profile.by or _i18n_unknown
+    if profile.acctlink ~= nil then
+        _useracctlink[ tonumber(profile.acctlink) ] = _useracctlink[ tonumber(profile.acctlink) ] or { }
+        table_insert(_useracctlink[ tonumber(profile.acctlink) ], profile.nick)
+    end
     if nick then
         _regusernicks[ nick ] = profile
     end
@@ -691,6 +706,14 @@ delreguser = function( nick, cid, hash )
         end
         local cid = profile.cid
         local nick = profile.nick
+        if profile.acctlink ~= nil then
+             for i, v in ipairs(_useracctlink[ tonumber(profile.acctlink) ]) do
+                if v == profile.nick then
+                    _useracctlink[ tonumber(profile.acctlink) ][i] = nil
+                    break
+                end
+            end
+        end
         if nick then
             _regusernicks[ nick ] = nil
         end
@@ -1602,6 +1625,139 @@ _protocol = {
         return true
     end
 
+    HADM = function( user, adccmd )
+        if _cfg_hadm_password ~= "" and adccmd:hasparam ("PW".._cfg_hadm_password) then
+            local ssl = _cfg_ssl_ports
+            local hubaddr = ""
+            if #ssl ~= 0 then
+                hubaddr = 'adcs://' .. _cfg_hub_hostaddress .. ':' .. ssl[1]
+                if _cfg_use_keyprint then
+                    hubaddr = hubaddr .. _cfg_keyprint_type .. _cfg_keyprint_hash
+                else
+                    hubaddr = hubaddr .. '/'
+                end
+            end
+            local hubinfo = { 
+                ["name"] = escapefrom( _cfg_hub_name ),
+                ["desc"] = escapefrom( _cfg_hub_description ),
+                ["addr"] = hubaddr,
+                ["users"] = tablesize( _normalstatesids ),
+                ["uptime"] = os_difftime( os_time( ), signal_get( "start" ) ),
+                ["minshare"] = _cfg_min_share,
+                ["minslots"] = _cfg_min_slots,
+            }
+            user.write( json_encode( hubinfo ) .. "\n" )
+            if adccmd[ 4 ] == "s" then
+                local q = tonumber( adccmd[ 6 ] )
+                local r = { } 
+                if _useracctlink[ q ] == nil then
+                    r.ok = true
+                    r.numaccts = 0
+                    r.accts = { }
+                else
+                    r.ok = true
+                    local accts = { }
+                    for k, v in ipairs( _useracctlink[ q ] ) do
+                        if type( _regusernicks[ v ] ) == "table" then
+                            local t = _regusernicks[ v ]
+                            if t.nick ~= nil then 
+                                local n = t.nick
+                                accts[ n ] = { } 
+                                accts[ n ].nick = n
+                                if isnickonline( n ) then
+                                    accts[ n ].isonline = true
+                                    accts[ n ].ip = tostring( _usernicks[ n ].ip() )
+                                    accts[ n ].share = _usernicks[ n ].share()
+                                else
+                                    accts[ n ].isonline = false
+                                end
+                                if t.password ~= nil then 
+                                    accts[ n ].password = t.password
+                                end
+                                if t.badpassword ~= nil then 
+                                    accts[ n ].badpassword = t.badpassword
+                                end
+                                if t.level ~= nil then 
+                                    accts[ n ].level = t.level
+                                end
+                                if t.date ~= nil then 
+                                    accts[ n ].date = t.date
+                                end
+                                if t.lastconnect ~= nil then 
+                                    accts[ n ].lastconnect = t.lastconnect
+                                end
+                                if _G.bans ~= nil then
+                                    accts[ n ].banned = false
+                                    for i, ban in ipairs( _G.bans ) do
+                                        if ban.nick == n then
+                                            accts[ n ].banned = true
+                                            accts[ n ].ban = ban
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    r.accts = { }
+                    local count = 0
+                    for n, t in util_pairsbykeys( accts ) do
+                        table_insert( r.accts, t )
+                        count = count + 1
+                    end
+                    r.numaccts = count
+                end
+                user:kill( json_encode( r ) .. "\n" )
+            elseif adccmd[ 4 ] == "a" then
+                local r = { }
+                local password = util_generatepass( 20 )
+                local nick = tostring(adccmd [ 6 ])
+                local acctlink = tonumber(adccmd [ 8 ])
+                out_put("## registering via hublink: nick="..nick..", pw="..password..", acctlink="..acctlink.."\n")
+                local bol, err = reguser{ nick = nick, password = password, level = 20, acctlink = acctlink, by = "HADM" }
+                if not bol then
+                    r.ok = false
+                    r.error = err or "unknown"
+                else
+                    r.ok = true
+                    r.nick = nick
+                    r.password = password
+                    r.level = 20
+                    r.acctlink = acctlink
+                end
+                user:kill( json_encode( r ) .. "\n" )
+            elseif adccmd[ 4 ] == "p" then
+                local r = { }
+                local password = util_generatepass( 20 )
+                local nick = tostring(adccmd [ 6 ])
+                out_put("## changing password via hublink: nick="..nick..", newpw="..password.."\n")
+                if type( _regusernicks[ nick ] ) == "table" then
+                    _regusernicks[ nick ].password = password
+                    cfg_saveusers( _regusers )
+                    if isnickonline( nick ) then
+                        _usernicks[ nick ]:reply( "Your password has been changed. Remember to change it in your Favorites! Your new password is: "..password, _hubbot )
+                        r.isonline = true
+                    else
+                        r.isonline = false
+                    end
+                    r.ok = true
+                    r.nick = nick
+                    r.password = password
+                else
+                    r.ok = false
+                    r.error = "User not found"
+                end
+                user:kill( json_encode( r ) .. "\n" )
+            elseif adccmd[ 4 ] == "q" then
+                user:kill( json_encode( { ["ok"] = true } ) .. "\n" )
+            else
+                user:kill( json_encode( { ["ok"] = false, ["error"] = "Unrecognised HADM command" } ) .. "\n" )
+            end
+        else
+            user:kill( json_encode ( { } ) .. "\n" .. json_encode( { ["ok"] = false, ["error"] = "Bad HADM password" } ) .. "\n" )
+        end
+        return true
+    end,
+
 }
 
 _identify = {
@@ -2063,6 +2219,11 @@ loadsettings = function( )    -- caching table lookups...
     _cfg_disable_email = cfg_get "disable_email"
     _cfg_forbid_plaintext = cfg_get "forbid_plaintext"
     _cfg_use_ping = cfg_get "use_ping"
+    _cfg_hadm_password = cfg_get "hadm_password"
+    _cfg_ssl_ports = cfg_get "ssl_ports"
+    _cfg_use_keyprint = cfg_get "use_keyprint"
+    _cfg_keyprint_type = cfg_get "keyprint_type"
+    _cfg_keyprint_hash = cfg_get "keyprint_hash"
 end
 
 init = function( )

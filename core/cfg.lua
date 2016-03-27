@@ -7,6 +7,7 @@
                 - added "disable_email" option
                 - added "hub_ip" option
                 - added "forbid_plaintext" option
+                - added "hadm_password" option
 
         v0.47: by pulsar
             - etc_trafficmanager.lua settings:
@@ -3371,6 +3372,12 @@ _defaultsettings = {
     forbid_plaintext = { false,
         function( value )
             return types_boolean( value, nil, true )
+        end
+    },
+
+    hadm_password = { "",
+        function( value )
+            return types_utf8( value, nil, true )
         end
     },
 

@@ -7,6 +7,7 @@
             v0.12: by tarulas
                 - changed: util.generatepass( len )
                     - password generation needs a CSPRNG, not math.random crap
+                - added: pairsbykeys( tbl, sortby )
 
             v0.11: by pulsar
                 - added: maketable( tbl, path )
@@ -151,6 +152,7 @@ local convertepochdate
 local trimstring
 local getlowestlevel
 local spairs
+local pairsbykeys
 
 --// tables //--
 
@@ -588,6 +590,21 @@ spairs = function( tbl )
     return orderedNext, tbl, nil
 end
 
+--// pairs by keys iterator (see Programming in Lua, 19.3)
+pairsbykeys = function( tbl, sortby )
+    local a = {}
+    for n in pairs( tbl ) do table_insert( a, n ) end
+        table_sort( a, sortby )
+        local i = 0
+        local iter = function( )
+            i = i + 1
+            if a[ i ] == nil then return nil
+            else return a[ i ], tbl[ a[ i ] ]
+        end
+    end
+    return iter
+end
+
 ----------------------------------// PUBLIC INTERFACE //--
 
 return {
@@ -609,6 +626,7 @@ return {
     trimstring = trimstring,
     getlowestlevel = getlowestlevel,
     spairs = spairs,
+    pairsbykeys = pairsbykeys,
     maketable = maketable,
 
 }
