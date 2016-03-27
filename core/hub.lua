@@ -323,6 +323,7 @@ local _cfg_bad_pass_timeout
 local _cfg_kill_wrong_ips
 local _cfg_disable_email
 local _cfg_forbid_plaintext
+local _cfg_use_ping
 
 --// constants //--
 
