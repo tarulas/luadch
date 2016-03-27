@@ -49,6 +49,7 @@ local tostring = use "tostring"
 
 --// lua libs //--
 
+local io = use "io"
 local os = use "os"
 local math = use "math"
 local table = use "table"
