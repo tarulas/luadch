@@ -1623,7 +1623,7 @@ _protocol = {
             user:kill( "ISTA 220 " .. _i18n_no_base_support .. "\n" )-----!
         end
         return true
-    end
+    end,
 
     HADM = function( user, adccmd )
         if _cfg_hadm_password ~= "" and adccmd:hasparam ("PW".._cfg_hadm_password) then
