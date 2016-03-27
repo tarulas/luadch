@@ -297,6 +297,7 @@ local _i18n_login_message
 local _i18n_unknown
 local _i18n_max_bad_password
 local _i18n_hubbot_response
+local _i18n_unencrypted_not_supp
 
 --// caching config //--
 
