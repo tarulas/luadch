@@ -8,6 +8,7 @@
             - new logins with same cid kick old ones (without autoreconnect)
             - added forbid_plaintext support
             - added HADM (remote admin JSON API) support
+            - added "hub_listen"
 
         v0.24: by pulsar
             - changes in loadusers() function
@@ -2238,10 +2239,14 @@ init = function( )
     reghubbot( cfg_get "hub_bot", cfg_get "hub_bot_desc" )
     scripts.start( _luadch )
     for i, port in pairs( cfg_get "tcp_ports" ) do
-        server.addserver( { incoming = newuser, disconnect = disconnect }, port, cfg_get "hub_ip" )
+        for j, ip in pairs( cfg_get "hub_listen" ) do
+            server.addserver( { incoming = newuser, disconnect = disconnect }, port, ip )
+        end
     end
     for i, port in pairs( cfg_get "ssl_ports" ) do
-        server.addserver( { incoming = newuser, disconnect = disconnect }, port, cfg_get "hub_ip", nil, cfg_get "ssl_params", 10000, true )
+        for j, ip in pairs( cfg_get "hub_listen" ) do
+            server.addserver( { incoming = newuser, disconnect = disconnect }, port, ip, nil, cfg_get "ssl_params", 10000, true )
+        end
     end
     server.addtimer(
         function( )
