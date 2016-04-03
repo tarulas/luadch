@@ -35,7 +35,7 @@ local cmd = "runtime"
 local cmd_p1 = "show"
 local cmd_p2 = "reset"
 
-local file = "core/hci.lua"
+local file = "scripts/data/hci.lua"
 
 
 ----------------------------
