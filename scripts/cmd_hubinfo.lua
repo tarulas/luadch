@@ -347,7 +347,7 @@ end
 
 --// uptime complete
 get_hubruntime = function()
-    local hci_tbl = util_loadtable( "core/hci.lua" )
+    local hci_tbl = util_loadtable( "scripts/data/hci.tbl" )
     local hubruntime = hci_tbl.hubruntime
     local formatdays = function( d )
         return math_floor( d / 365 ), math_floor( d ) % 365

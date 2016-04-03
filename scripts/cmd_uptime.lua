@@ -138,7 +138,7 @@ local get_hubuptime = function()
 end
 
 local get_hubruntime = function()
-    local hci_tbl = util_loadtable( "core/hci.lua" )
+    local hci_tbl = util_loadtable( "scripts/data/hci.tbl" )
     local hubruntime = hci_tbl.hubruntime
     local d, h, m, s = util_formatseconds( hubruntime )
     if d > 365 then

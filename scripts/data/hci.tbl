@@ -1,6 +1,4 @@
-local hci_tbl
-
-hci_tbl = {
+return {
 
     [ "hubruntime" ] = 0,
     [ "hubruntime_last_check" ] = 0,
@@ -11,5 +9,3 @@ hci_tbl = {
     [ "usercount" ] = 0,
 
 }
-
-return hci_tbl
