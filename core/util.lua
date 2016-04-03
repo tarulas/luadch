@@ -593,10 +593,11 @@ end
 --// pairs by keys iterator (see Programming in Lua, 19.3)
 pairsbykeys = function( tbl, sortby )
     local a = {}
+    local iter
     for n in pairs( tbl ) do table_insert( a, n ) end
         table_sort( a, sortby )
         local i = 0
-        local iter = function( )
+        iter = function( )
             i = i + 1
             if a[ i ] == nil then return nil
             else return a[ i ], tbl[ a[ i ] ]

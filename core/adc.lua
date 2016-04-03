@@ -522,6 +522,19 @@ _protocol = {
             nonpclones = true,
 
         },
+        ADM = {
+            pp = { 
+                _regex.default,
+                _regex.default,
+                _regex.default,
+                
+                len = 3, 
+            },
+            np = {
+                PW = _regex.default,
+            },
+            nonpclones = false,
+        },
 
     },
     contexts = {
@@ -544,6 +557,7 @@ _protocol = {
         GET = _regex.context.hub,
         GFI = _regex.context.hub,
         SND = _regex.context.hub,
+        ADM = _regex.context.hub,
 
     }
 

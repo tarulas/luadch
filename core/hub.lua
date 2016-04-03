@@ -191,6 +191,8 @@ local util_date = util.date
 local util_difftime = util.difftime
 local util_pairsbykeys = util.pairsbykeys
 local util_generatepass = util.generatepass
+local json_encode = json.encode
+local json_decode = json.decode
 
 --// functions //--
 
@@ -264,6 +266,7 @@ local _usersids
 local _usercids
 local _usernicks
 local _userclients
+local _useracctlink
 local _regusercids
 local _regusernicks
 local _matchreguser
@@ -357,6 +360,7 @@ _pingsup = "" ..
 _G = _G
 _usersids = { }    -- keys: SIDs
 _usernicks = { }    -- keys: nicks
+_useracctlink = { }
 _userclients = { }    -- keys: clients, users
 _usercids = { TIGR = { } }    -- keys: sessions hashs (TIGR)
 _regusernicks = { }    -- same as above...
@@ -1688,7 +1692,7 @@ _protocol = {
                                 if t.lastconnect ~= nil then 
                                     accts[ n ].lastconnect = t.lastconnect
                                 end
-                                if _G.bans ~= nil then
+                                --[[if _G.bans ~= nil then
                                     accts[ n ].banned = false
                                     for i, ban in ipairs( _G.bans ) do
                                         if ban.nick == n then
@@ -1696,7 +1700,7 @@ _protocol = {
                                             accts[ n ].ban = ban
                                         end
                                     end
-                                end
+                                end]]
                             end
                         end
                     end
