@@ -540,6 +540,7 @@ newuser = function( client )
 end    -- private
 
 loadregusers = function( )
+    _useracctlink = { }
     for i, usertbl in ipairs( _regusers ) do
         usertbl.isonline = nil  -- users are supposed to be offline
         local cid = usertbl.cid
@@ -547,6 +548,10 @@ loadregusers = function( )
         local nick = usertbl.nick
         if nick then
             _regusernicks[ nick ] = usertbl
+            if usertbl.acctlink ~= nil then
+                _useracctlink[ tonumber( usertbl.acctlink) ] = _useracctlink[ tonumber(usertbl.acctlink) ] or { }
+                table_insert(_useracctlink[ tonumber(usertbl.acctlink) ], nick)
+            end
         end
         if hash and cid then
             _regusercids[ hash ] = _regusercids[ hash ] or { }

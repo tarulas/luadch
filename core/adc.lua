@@ -523,12 +523,12 @@ _protocol = {
 
         },
         ADM = {
-            pp = { 
+            pp = {
                 _regex.default,
                 _regex.default,
                 _regex.default,
-                
-                len = 3, 
+
+                len = 3,
             },
             np = {
                 PW = _regex.default,
