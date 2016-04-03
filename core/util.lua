@@ -422,18 +422,18 @@ local _base62 = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
 generatepass = function( len )
     local len = tonumber( len )
     if not ( type( len ) == "number" ) or ( len < 0 ) or ( len > 1000 ) then len = 20 end
-    local randomdevice = io_open( "/dev/urandom", "r" ) -- TODO: Windows compatibility, RtlGenRandom
-    local eol = 0
-    local _buffer
+    local randomdevice = io_open( "/dev/urandom", "r" )
+    local _buffer = {}
+    local r = 0
     for i = 1, len do
         repeat
-            local r = string_byte( randomdevice:read( 1 ) )
+            r = string_byte( randomdevice:read( 1 ) )
         until ( r < 248 ) -- 248 = 256-(256%62), to avoid bias
-        _buffer[ eol ] = _base62[ math_fmod( r, 62 ) + 1 ]
-        eol = eol + 1
+        _buffer[ i ] = _base62[ math_fmod( r, 62 ) + 1 ]
     end
+    r = 0
     randomdevice:close( )
-    return table_concat( _buffer, "", 1, eol )
+    return table_concat( _buffer )
 end
 
 --// returns current date in new luadch date style: yyyymmddhhmmss (as number)

@@ -601,7 +601,7 @@ adclib.createsid = function( )
 end
 
 adclib.createsalt = function( num )
-    local randomdevice = io_open( "/dev/urandom", "r" ) -- TODO: Windows compatibility, RtlGenRandom
+    local randomdevice = io_open( "/dev/urandom", "r" )
     num = num or 20
     local randomstring = randomdevice:read( num )
     randomdevice:close( )
