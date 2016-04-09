@@ -121,6 +121,7 @@ local adccmd_fourcc
 local adccmd_deletenp
 local adccmd_getallnp
 local adccmd_hasparam
+local adccmd_removesu
 local adccmd_targetsid
 local adccmd_adcstring
 
@@ -779,6 +780,19 @@ adccmd_hasparam = function( self, target )
     return false
 end
 
+adccmd_removesu = function ( self, target )
+    local su = adccmd_getnp( self, "SU" )
+    if not su then
+        return false
+    end
+    su = string_gsub( su, target..",", "" ) -- kill it in the middle or the start
+    su = string_gsub( su, target, "" ) -- kill it at the end
+    su = string_gsub( su, ",$", "" ) -- kill any trailing ,
+    adccmd_setnp( self, "SU", su )
+    self.cache = nil
+    return true
+end
+
 adccmd_adcstring = function( self )
     local adcstring = self.cache
     if not adcstring then
@@ -963,6 +977,7 @@ parse = function( data )
     command.getallnp = adccmd_getallnp
     command.deletenp = adccmd_deletenp
     command.hasparam = adccmd_hasparam
+    command.removesu = adccmd_removesu
     command.adcstring = adccmd_adcstring
     command.targetsid = adccmd_targetsid
 
