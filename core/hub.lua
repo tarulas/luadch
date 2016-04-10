@@ -2249,12 +2249,16 @@ init = function( )
     scripts.start( _luadch )
     for i, port in pairs( cfg_get "tcp_ports" ) do
         for j, ip in pairs( cfg_get "hub_listen" ) do
-            server.addserver( { incoming = newuser, disconnect = disconnect }, port, ip )
+            if server.addserver( { incoming = newuser, disconnect = disconnect }, port, ip ) == nil then
+                os.exit( -1 )
+            end
         end
     end
     for i, port in pairs( cfg_get "ssl_ports" ) do
         for j, ip in pairs( cfg_get "hub_listen" ) do
-            server.addserver( { incoming = newuser, disconnect = disconnect }, port, ip, nil, cfg_get "ssl_params", 10000, true )
+            if server.addserver( { incoming = newuser, disconnect = disconnect }, port, ip, nil, cfg_get "ssl_params", 10000, true ) == nil then
+                os.exit( -1 )
+            end
         end
     end
     server.addtimer(
