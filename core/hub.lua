@@ -1357,6 +1357,9 @@ createuser = function( _client, _sid )
     user.slots = function( _ )
         return _inf and tonumber( _inf:getnp "SL" )
     end
+    user.freeslots = function( _ )
+        return _inf and tonumber( _inf:getnp "FS" ) or 0
+    end
     user.features = function( _ )
        return _inf and _inf:getnp "SU"
     end

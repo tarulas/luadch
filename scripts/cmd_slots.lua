@@ -62,7 +62,7 @@ local onbmsg = function( user )
     for sid, user in pairs( hub_getusers() ) do
         if not user:isbot() then
             local nick = user:nick()
-            local slots = user:slots()
+            local slots = user:freeslots()
             if slots > 0 then
                 tbl[ #tbl + 1 ] = "  " .. nick .. "  |  " .. slots .. "\n"
             end
