@@ -1,6 +1,6 @@
 ----------------------------------------------------------------------------
--- LuaSec 0.6
--- Copyright (C) 2009-2016 PUC-Rio
+-- LuaSec 0.5
+-- Copyright (C) 2009-2014 PUC-Rio
 --
 -- Author: Pablo Musa
 -- Author: Tomas Guisasola
@@ -12,21 +12,25 @@ local ltn12  = require("ltn12")
 local http   = require("socket.http")
 local url    = require("socket.url")
 
-local try    = socket.try
+local table  = require("table")
+local string = require("string")
 
---
--- Module
---
-local _M = {
-  _VERSION   = "0.6",
-  _COPYRIGHT = "LuaSec 0.6 - Copyright (C) 2009-2016 PUC-Rio",
-  PORT       = 443,
-}
+local try          = socket.try
+local type         = type
+local pairs        = pairs
+local getmetatable = getmetatable
 
--- TLS configuration
+module("ssl.https")
+
+_VERSION   = "0.5"
+_COPYRIGHT = "LuaSec 0.5 - Copyright (C) 2009-2014 PUC-Rio"
+
+-- Default settings
+PORT = 443
+
 local cfg = {
-  protocol = "any",
-  options  = {"all", "no_sslv2", "no_sslv3"},
+  protocol = "tlsv1",
+  options  = "all",
   verify   = "none",
 }
 
@@ -36,7 +40,7 @@ local cfg = {
 
 -- Insert default HTTPS port.
 local function default_https_port(u)
-   return url.build(url.parse(u, {port = _M.PORT}))
+   return url.build(url.parse(u, {port = PORT}))
 end
 
 -- Convert an URL to a table according to Luasocket needs.
@@ -89,7 +93,6 @@ local function tcp(params)
       function conn:connect(host, port)
          try(self.sock:connect(host, port))
          self.sock = try(ssl.wrap(self.sock, params))
-         self.sock:sni(host)
          try(self.sock:dohandshake())
          reg(self, getmetatable(self.sock))
          return 1
@@ -110,7 +113,7 @@ end
 -- @param body optional (string)
 -- @return (string if url == string or 1), code, headers, status
 --
-local function request(url, body)
+function request(url, body)
   local result_table = {}
   local stringrequest = type(url) == "string"
   if stringrequest then
@@ -133,11 +136,3 @@ local function request(url, body)
   end
   return res, code, headers, status
 end
-
---------------------------------------------------------------------------------
--- Export module
---
-
-_M.request = request
-
-return _M
