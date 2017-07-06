@@ -1,9 +1,9 @@
 /*--------------------------------------------------------------------------
- * LuaSec 0.5
+ * LuaSec 0.6
  *
- * Copyright (C) 2014 Kim Alvefur, Paul Aurich, Tobias Markmann, 
- *                    Matthew Wild.
- * Copyright (C) 2006-2014 Bruno Silvestre.
+ * Copyright (C) 2014-2016 Kim Alvefur, Paul Aurich, Tobias Markmann, 
+ *                         Matthew Wild.
+ * Copyright (C) 2006-2016 Bruno Silvestre.
  *
  *--------------------------------------------------------------------------*/
 
@@ -24,7 +24,7 @@
 #include "context.h"
 #include "options.h"
 
-#ifndef OPENSSL_NO_ECDH
+#ifndef OPENSSL_NO_EC
 #include <openssl/ec.h>
 #include "ec.h"
 #endif
@@ -35,6 +35,28 @@ typedef const SSL_METHOD LSEC_SSL_METHOD;
 typedef       SSL_METHOD LSEC_SSL_METHOD;
 #endif
 
+/*-- Compat - Lua 5.1 --------------------------------------------------------*/
+
+#if (LUA_VERSION_NUM == 501)
+
+#define luaL_testudata(L, ud, tname)  testudata(L, ud, tname)
+
+static void *testudata (lua_State *L, int ud, const char *tname) {
+  void *p = lua_touserdata(L, ud);
+  if (p != NULL) {  /* value is a userdata? */
+    if (lua_getmetatable(L, ud)) {  /* does it have a metatable? */
+      luaL_getmetatable(L, tname);  /* get correct metatable */
+      if (!lua_rawequal(L, -1, -2))  /* not the same? */
+        p = NULL;  /* value is a userdata with wrong metatable */
+      lua_pop(L, 2);  /* remove both metatables */
+      return p;
+    }
+  }
+  return NULL;  /* value is not a userdata with a metatable */
+}
+
+#endif
+
 /*--------------------------- Auxiliary Functions ----------------------------*/
 
 /**
@@ -43,6 +65,11 @@ typedef       SSL_METHOD LSEC_SSL_METHOD;
 static p_context checkctx(lua_State *L, int idx)
 {
   return (p_context)luaL_checkudata(L, idx, "SSL:Context");
+}
+
+static p_context testctx(lua_State *L, int idx)
+{
+  return (p_context)luaL_testudata(L, idx, "SSL:Context");
 }
 
 /**
@@ -65,7 +92,11 @@ static int set_option_flag(const char *opt, unsigned long *flag)
  */
 static LSEC_SSL_METHOD* str2method(const char *method)
 {
-  if (!strcmp(method, "sslv23"))  return SSLv23_method();
+  if (!strcmp(method, "any"))     return SSLv23_method();
+  if (!strcmp(method, "sslv23"))  return SSLv23_method();  // deprecated
+#ifndef OPENSSL_NO_SSL3
+  if (!strcmp(method, "sslv3"))   return SSLv3_method();
+#endif
   if (!strcmp(method, "tlsv1"))   return TLSv1_method();
 #if (OPENSSL_VERSION_NUMBER >= 0x1000100fL)
   if (!strcmp(method, "tlsv1_1")) return TLSv1_1_method();
@@ -269,18 +300,6 @@ static int verify_cb(int preverify_ok, X509_STORE_CTX *x509_ctx)
   return (verify & LSEC_VERIFY_CONTINUE ? 1 : preverify_ok);
 }
 
-#ifndef OPENSSL_NO_ECDH
-static EC_KEY *find_ec_key(const char *str)
-{
-  p_ec ptr;
-  for (ptr = curves; ptr->name; ptr++) {
-    if (!strcmp(str, ptr->name))
-      return EC_KEY_new_by_curve_name(ptr->nid);
-  }
-  return NULL;
-}
-#endif
-
 /*------------------------------ Lua Functions -------------------------------*/
 
 /**
@@ -395,6 +414,17 @@ static int load_key(lua_State *L)
 }
 
 /**
+ * Check that the certificate public key matches the private key
+ */
+
+static int check_key(lua_State *L)
+{
+  SSL_CTX *ctx = lsec_checkcontext(L, 1);
+  lua_pushboolean(L, SSL_CTX_check_private_key(ctx));
+  return 1;
+}
+
+/**
  * Set the cipher list.
  */
 static int set_cipher(lua_State *L)
@@ -417,7 +447,7 @@ static int set_cipher(lua_State *L)
 static int set_depth(lua_State *L)
 {
   SSL_CTX *ctx = lsec_checkcontext(L, 1);
-  SSL_CTX_set_verify_depth(ctx, luaL_checkint(L, 2));
+  SSL_CTX_set_verify_depth(ctx, (int)luaL_checkinteger(L, 2));
   lua_pushboolean(L, 1);
   return 1;
 }
@@ -519,11 +549,11 @@ static int set_dhparam(lua_State *L)
 /**
  * Set elliptic curve.
  */
-#ifdef OPENSSL_NO_ECDH
+#ifdef OPENSSL_NO_EC
 static int set_curve(lua_State *L)
 {
   lua_pushboolean(L, 0);
-  lua_pushstring(L, "OpenSSL does not support ECDH");
+  lua_pushstring(L, "OpenSSL does not support EC");
   return 2;
 }
 #else
@@ -532,7 +562,25 @@ static int set_curve(lua_State *L)
   long ret;
   SSL_CTX *ctx = lsec_checkcontext(L, 1);
   const char *str = luaL_checkstring(L, 2);
-  EC_KEY *key = find_ec_key(str);
+
+  SSL_CTX_set_options(ctx, SSL_OP_SINGLE_ECDH_USE);
+
+#if defined(SSL_CTRL_SET_ECDH_AUTO) || defined(SSL_CTRL_SET_CURVES_LIST) || defined(SSL_CTX_set1_curves_list)
+  if (SSL_CTX_set1_curves_list(ctx, str) != 1) {
+    lua_pushboolean(L, 0);
+    lua_pushfstring(L, "unknown elliptic curve in \"%s\"", str);
+    return 2;
+  }
+
+#ifdef SSL_CTRL_SET_ECDH_AUTO
+  SSL_CTX_set_ecdh_auto(ctx, 1);
+#endif
+
+  lua_pushboolean(L, 1);
+  return 1;
+
+#else /* !defined(SSL_CTRL_SET_CURVES_LIST) */
+  EC_KEY *key = lsec_find_ec_key(L, str);
 
   if (!key) {
     lua_pushboolean(L, 0);
@@ -552,6 +600,7 @@ static int set_curve(lua_State *L)
   }
   lua_pushboolean(L, 1);
   return 1;
+#endif /* defined(SSL_CTRL_SET_CURVES_LIST) */
 }
 #endif
 
@@ -563,6 +612,7 @@ static luaL_Reg funcs[] = {
   {"locations",    load_locations},
   {"loadcert",     load_cert},
   {"loadkey",      load_key},
+  {"checkkey",     check_key},
   {"setcipher",    set_cipher},
   {"setdepth",     set_depth},
   {"setdhparam",   set_dhparam},
@@ -696,6 +746,12 @@ SSL_CTX* lsec_checkcontext(lua_State *L, int idx)
   return ctx->context;
 }
 
+SSL_CTX* lsec_testcontext(lua_State *L, int idx)
+{
+  p_context ctx = testctx(L, idx);
+  return (ctx) ? ctx->context : NULL;
+}
+
 /**
  * Retrieve the mode from the context in the Lua stack.
  */
@@ -710,39 +766,21 @@ int lsec_getmode(lua_State *L, int idx)
 /**
  * Registre the module.
  */
-#if (LUA_VERSION_NUM == 501)
 LSEC_API int luaopen_ssl_context(lua_State *L)
 {
   luaL_newmetatable(L, "SSL:DH:Registry");      /* Keep all DH callbacks */
   luaL_newmetatable(L, "SSL:Verify:Registry");  /* Keep all verify flags */
   luaL_newmetatable(L, "SSL:Context");
-  luaL_register(L, NULL, meta);
+  setfuncs(L, meta);
 
   /* Create __index metamethods for context */
-  lua_newtable(L);
-  luaL_register(L, NULL, meta_index);
+  luaL_newlib(L, meta_index);
   lua_setfield(L, -2, "__index");
 
-  /* Register the module */
-  luaL_register(L, "ssl.context", funcs);
-  return 1;
-}
-#else
-LSEC_API int luaopen_ssl_context(lua_State *L)
-{
-  luaL_newmetatable(L, "SSL:DH:Registry");      /* Keep all DH callbacks */
-  luaL_newmetatable(L, "SSL:Verify:Registry");  /* Keep all verify flags */
-  luaL_newmetatable(L, "SSL:Context");
-  luaL_setfuncs(L, meta, 0);
-
-  /* Create __index metamethods for context */
-  lua_newtable(L);
-  luaL_setfuncs(L, meta_index, 0);
-  lua_setfield(L, -2, "__index");
+  lsec_load_curves(L);
 
   /* Return the module */
-  lua_newtable(L);
-  luaL_setfuncs(L, funcs, 0);
+  luaL_newlib(L, funcs);
+
   return 1;
 }
-#endif
